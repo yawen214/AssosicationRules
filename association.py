@@ -40,7 +40,7 @@ def get_transactions(filename):
             transaction.add(int(components[1]))
     return transactions_list
 
-def support_threshold_select (threshold, items_sets, transactions_list):
+def freq_item_generate (threshold, items_sets, transactions_list):
     ''' Return itemset of size one with support larger or equal to the threshold.
         Current version only return k =1 size freq items
     '''
@@ -73,7 +73,7 @@ def main():
     sys.stdout.write("Now working on finding freq_itemsets above threshold {0} with size of ...".format(threshold))
     sys.stdout.flush()
     start = time.time()
-    freq_itemsets = support_threshold_select(threshold, all_items_set, transactions_list)
+    freq_itemsets = freq_item_generate(threshold, all_items_set, transactions_list)
     end = time.time()
     sys.stdout.write(" done in {0}ms\n\nFound:\n".format(end-start))
     print ("frequent items above threshold {0} found:").format(threshold)
