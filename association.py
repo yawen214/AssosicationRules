@@ -73,8 +73,9 @@ def gen_candidates(itemsets, k):
         if s1 == s2:
             last_elem1 = pair[0][1]
             last_elem2 = pair[1][1]
-            # append the union of elements 0 - k-2, element @ k-1 from both lists
-            candidates.append(s1 | last_elem1 | last_elem2)
+            if last_elem1 != last_elem2:
+                # append the union of elements 0 - k-2, elements @ k-1 from both lists
+                candidates.append(s1 | last_elem1 | last_elem2)
     return candidates
 
 def main():
