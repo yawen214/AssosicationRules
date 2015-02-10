@@ -1,9 +1,9 @@
 """ 
 assoication.py by Yawen Chen & Brian Charous 
 for CS324 Winter 2015
-PART I of Association Rule Assignment
+PART 2 of Association Rule Assignment
 
-To compile:
+To run:
 python -s --threshold -f itemsets -d datasets
 for example: python association.py -s 1000 -f movies.dat -d ratings.dat
 (finds all freq itemsets in size of 1 with support no less than the threshold 1000 in transactions in ratings.dat )
@@ -12,6 +12,7 @@ for example: python association.py -s 1000 -f movies.dat -d ratings.dat
 import sys
 import argparse
 import time
+import itertools
 
 def get_items(filename):
     """ read in data from both the item file"""
@@ -44,15 +45,37 @@ def freq_item_generate (threshold, items_sets, transactions_list):
     ''' Return itemset of size one with support larger or equal to the threshold.
         Current version only return k =1 size freq items
     '''
-    freq_itemsets = set()
+    freq_itemsets = []
     for item in items_sets:   
         count = 0
         for transaction in transactions_list:        
             if int(item) in transaction: #version 0: only care about k =1
                 count += 1
         if count >= threshold:
-            freq_itemsets.add(item)
+            freq_itemsets.append(set([int(item)]))
     return freq_itemsets
+
+def gen_candidates(itemsets, k):
+    """ takes a list of itemsets and a size k and
+    uses the F_{k-1}xF_{k-1} technique for candidate generation """
+
+    # sort itemsets, pull out last item (i.e. get first k-2 items), 
+    # kepe track of last item
+    km2 = []
+    for s in itemsets:
+        s_sort = sorted(s)
+        km2.append((set(s_sort[:-1]), set([s_sort[len(s_sort)-1]])))
+
+    candidates = []
+    for pair in itertools.combinations(km2, 2):
+        s1 = pair[0][0]
+        s2 = pair[1][0]
+        if s1 == s2:
+            last_elem1 = pair[0][1]
+            last_elem2 = pair[1][1]
+            # append the union of elements 0 - k-2, element @ k-1 from both lists
+            candidates.append(s1 | last_elem1 | last_elem2)
+    return candidates
 
 def main():
     parser = argparse.ArgumentParser()
@@ -75,12 +98,12 @@ def main():
     start = time.time()
     freq_itemsets = freq_item_generate(threshold, all_items_set, transactions_list)
     end = time.time()
-    sys.stdout.write(" done in {0}ms\n\nFound:\n".format(end-start))
+    sys.stdout.write(" done in {0}s\n\nFound:\n".format(end-start))
     print ("frequent items above threshold {0} found:").format(threshold)
     i = 0
     for items in freq_itemsets:
         i+= 1
-        movie = items_dict[int(items)]
+        movie = items_dict[items]
         print movie
     print "Total of {0} movies found in {1} s".format(i, (end-start)/1000)
 
