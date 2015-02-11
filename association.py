@@ -55,7 +55,7 @@ def freq_item_generate (threshold, items_sets, transactions_list):
             freq_itemsets.append(set([int(item)]))
     return freq_itemsets
 
-def gen_candidates(itemsets, k):
+def gen_candidates(itemsets):
     """ takes a list of itemsets and a size k and
     uses the F_{k-1}xF_{k-1} technique for candidate generation """
 
@@ -77,6 +77,27 @@ def gen_candidates(itemsets, k):
                 # append the union of elements 0 - k-2, elements @ k-1 from both lists
                 candidates.append(s1 | last_elem1 | last_elem2)
     return candidates
+
+def create_hash_tree(candidates):
+    """ build a hash tree from candidates """
+    tree = {}
+    for candidate in candidates:
+        tree = append_candidate_to_tree(sorted(list(candidate)), tree)
+    return tree
+
+def append_candidate_to_tree(candidate, tree):
+    """ append a candidate (SORTED LIST) to the hash tree """
+    val  = candidate[0]
+    if len(candidate) == 1:
+        tree[val] = 0
+        return tree
+    else:
+        if val in tree:
+            append_candidate_to_tree(candidate[1:], tree[val])
+            return tree
+        else:
+            tree[val] = append_candidate_to_tree(candidate[1:], {})
+            return tree
 
 def main():
     parser = argparse.ArgumentParser()
