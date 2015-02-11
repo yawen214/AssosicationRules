@@ -99,6 +99,40 @@ def append_candidate_to_tree(candidate, tree):
             tree[val] = append_candidate_to_tree(candidate[1:], {})
             return tree
 
+def increment_support_count(transaction, hash_tree, k):
+    """ increment the count of each itemset of size k in a given transaction """
+    itemsets = list(itertools.combinations(transaction, k))
+    for itemset in itemsets:
+        __increment_support_count(sorted(list(itemset)), hash_tree)
+
+def __increment_support_count(itemset, hash_tree):
+    """ traverse the hash tree and actually increment the count for an itemset """
+    item = itemset[0]
+    print itemset, hash_tree
+    if len(itemset) == 1:
+        if item in hash_tree:
+            assert type(hash_tree[item]) is int
+            hash_tree[item] = hash_tree[item] + 1
+    else:
+        __increment_support_count(itemset[1:], hash_tree[item])
+
+def count_support(filename, hash_tree, k):
+    """ read transactions from file, increment hash tree leaves if subset of transaction 
+    is a candidate """
+    with open(filename, 'r') as f:
+        for line in f:
+            parts = line.split("::")
+            transaction = [c for c in parts]
+            increment_support_count(transaction, hash_tree, k)
+
+def prune_candidates(hash_tree, threshold):
+    """ return a list of itemsets that appeared more than the threshold number of times
+    in the dataset """
+    pass
+
+def apriori(transactions_filename, threshold, max_k):
+    pass
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--support_threshold', type= int, required=True, help='Input wanted support threshold')
