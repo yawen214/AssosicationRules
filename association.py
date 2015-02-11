@@ -41,7 +41,7 @@ def get_transactions(filename):
             transaction.add(int(components[1]))
     return transactions_list
 
-def freq_item_generate (threshold, items_sets, transactions_list):
+def freq_item_generate(threshold, items_sets, transactions_list):
     ''' Return itemset of size one with support larger or equal to the threshold.
         Current version only return k =1 size freq items
     '''
@@ -108,13 +108,13 @@ def increment_support_count(transaction, hash_tree, k):
 def __increment_support_count(itemset, hash_tree):
     """ traverse the hash tree and actually increment the count for an itemset """
     item = itemset[0]
-    print itemset, hash_tree
     if len(itemset) == 1:
         if item in hash_tree:
             assert type(hash_tree[item]) is int
             hash_tree[item] = hash_tree[item] + 1
     else:
-        __increment_support_count(itemset[1:], hash_tree[item])
+        if item in hash_tree:
+            __increment_support_count(itemset[1:], hash_tree[item])
 
 def count_support(filename, hash_tree, k):
     """ read transactions from file, increment hash tree leaves if subset of transaction 
@@ -122,16 +122,50 @@ def count_support(filename, hash_tree, k):
     with open(filename, 'r') as f:
         for line in f:
             parts = line.split("::")
-            transaction = [c for c in parts]
+            transaction = (int(c) for c in parts)
             increment_support_count(transaction, hash_tree, k)
 
-def prune_candidates(hash_tree, threshold):
+def prune_candidates(hash_tree, candidates, threshold):
     """ return a list of itemsets that appeared more than the threshold number of times
     in the dataset """
-    pass
+    return [c for c in candidates if is_candidate_supported(hash_tree, c, threshold)]
+
+def is_candidate_supported(hash_tree, candidate, threshold):
+    lc = list(candidate)
+    item = lc[0]
+    if len(candidate) == 1:
+        if item in hash_tree:
+            assert type(hash_tree[item]) is int
+            return hash_tree[item] > threshold
+    else:
+        if item in hash_tree:
+            return is_candidate_supported(hash_tree[item], lc[1:], threshold)
+    return False
 
 def apriori(transactions_filename, threshold, max_k):
-    pass
+
+    # get all item ids, say these are the "candidates" of size 1
+    k = 1
+    candidates = set()
+    with open(transactions_filename, 'r') as f:
+        for line in f:
+            parts = line.split("::")
+            for part in parts:
+                candidates.add((int(part),))
+    tree = create_hash_tree(candidates)
+    count_support(transactions_filename, tree, 1)
+    pruned = prune_candidates(tree, candidates, threshold)
+    print "{0} items for k={1}".format(len(pruned), k)
+    k = 2
+    # apriori
+    while k <= max_k:
+        candidates = gen_candidates(pruned)
+        tree = create_hash_tree(candidates)
+        count_support(transactions_filename, tree, k)
+        pruned = prune_candidates(tree, candidates, threshold)
+        print "{0} items for k={1}".format(len(pruned), k)
+        k+=1
+    return pruned
 
 def main():
     parser = argparse.ArgumentParser()
