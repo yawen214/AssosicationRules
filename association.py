@@ -2,10 +2,9 @@
 assoication.py by Yawen Chen & Brian Charous 
 for CS324 Winter 2015
 PART 2 of Association Rule Assignment
-
 To run:
 python -s --threshold -f itemsets -d datasets
-for example: python association.py -s 1000 -f movies.dat -d ratings.dat
+for example: python association.py -s 1000 -c -f movies.dat -d ratings.dat
 (finds all freq itemsets in size of 1 with support no less than the threshold 1000 in transactions in ratings.dat )
 """
 
@@ -15,7 +14,10 @@ import time
 import itertools
 
 def get_items(filename):
-    """ read in data from both the item file"""
+    """ read in data from both the item file.
+         return a dictionary of items with ID and movie name
+         return an items_set (set) with movie IDs in it
+    """
     items_dict = dict() # a dictionary with ID and the movie name
     all_items_set = set()
     with open(filename, 'r') as f:
@@ -27,6 +29,10 @@ def get_items(filename):
     return items_dict, all_items_set
 
 def get_transactions(filename):
+    ''' return tansactions lists consists of a transactions set
+        to avoid storing all transactions in memory, we don't use this function
+        for part II.
+    '''
     transactions_list = []
     transaction = set()
     with open(filename, 'r') as f:
@@ -60,7 +66,7 @@ def gen_candidates(itemsets):
     uses the F_{k-1}xF_{k-1} technique for candidate generation """
 
     # sort itemsets, pull out last item (i.e. get first k-2 items), 
-    # kepe track of last item
+    # ke track of last item
     km2 = []
     for s in itemsets:
         s_sort = sorted(s)
@@ -119,10 +125,17 @@ def __increment_support_count(itemset, hash_tree):
 def count_support(filename, hash_tree, k):
     """ read transactions from file, increment hash tree leaves if subset of transaction 
     is a candidate """
+    transaction = set()
     with open(filename, 'r') as f:
         for line in f:
+            cur_id =1
+        for line in f:
             parts = line.split("::")
-            transaction = (int(c) for c in parts)
+            components = [c for c in parts] 
+            if cur_id != int(components[0]):
+                transaction = set()  #reset transaction
+                cur_id = int(components[0]) #set cur id
+            transaction.add(int(components[1])) #add movie id to the current transaction
             increment_support_count(transaction, hash_tree, k)
 
 def prune_candidates(hash_tree, candidates, threshold):
@@ -170,6 +183,7 @@ def apriori(transactions_filename, threshold, max_k):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--support_threshold', type= int, required=True, help='Input wanted support threshold')
+    parser.add_argument('-c', '--confidence_threshold', type= int, required = True, help = 'Input confidence threshold')
     parser.add_argument('-f', '--items_file', required=True, help='The file name of the itemset')
     parser.add_argument('-d', '--dataset_file', required=True, help='The file name of the dataset')
 
@@ -180,9 +194,8 @@ def main():
     sys.stdout.flush()
     threshold = int(args.support_threshold)
     items_dict, all_items_set = get_items(args.items_file)  # read in all itemsets
-    transactions_list= get_transactions(args.dataset_file) # read in transactions and return set
-    print(" done!")
     print "==========================="
+    '''
     sys.stdout.write("Now working on finding freq_itemsets above threshold {0} with size of ...".format(threshold))
     sys.stdout.flush()
     start = time.time()
@@ -190,15 +203,19 @@ def main():
     end = time.time()
     sys.stdout.write(" done in {0}s\n\nFound:\n".format(end-start))
     print ("frequent items above threshold {0} found:").format(threshold)
+    '''
+    k = len(all_items_set)
+    freq_itemsets =apriori(args.dataset_file, args.support_threshold,k)
+    print freq_itemsets
+    '''
     i = 0
     for items in freq_itemsets:
         i+= 1
         movie = items_dict[items]
         print movie
     print "Total of {0} movies found in {1} s".format(i, (end-start)/1000)
-
     print "=========\n"
     print "end of part I:\n"
-
+'''
 if __name__ == '__main__':
     main()
