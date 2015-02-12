@@ -145,7 +145,12 @@ def count_support(filename, hash_tree, candidates):
 def prune_candidates(hash_tree, candidates, threshold):
     """ return a list of itemsets that appeared more than the threshold number of times
     in the dataset """
-    return [c for c in candidates if is_candidate_supported(hash_tree, c, threshold)]
+    pruned = []
+    for c in candidates:
+        support  = is_candidate_supported(hash_tree, c, threshold)
+        if support >= threshold:
+            pruned.append((c, support))
+    return pruned
 
 def is_candidate_supported(hash_tree, candidate, threshold):
     lc = list(candidate)
@@ -155,11 +160,11 @@ def is_candidate_supported(hash_tree, candidate, threshold):
             assert type(hash_tree[item]) is int
             if hash_tree[item]>threshold:
                 #rule_generation(item,hashtree)
-            return hash_tree[item] > threshold
+                return hash_tree[item]
     else:
         if item in hash_tree:
             return is_candidate_supported(hash_tree[item], lc[1:], threshold)
-    return False
+    return 0
 
 def apriori(transactions_filename, threshold, max_k):
 
@@ -175,16 +180,18 @@ def apriori(transactions_filename, threshold, max_k):
     tree = create_hash_tree(candidates)
     count_support(transactions_filename, tree, candidates)
     pruned = prune_candidates(tree, candidates, threshold)
-    all_pruned.extend(pruned)
+    pruned_sets = [p[0] for p in pruned]
+    all_pruned.extend(pruned_sets)
     print "{0} candidates, {1} items for k={2}".format(len(candidates), len(pruned), k)
     k = 2
     # apriori
     while k <= max_k:
-        candidates = gen_candidates(pruned)
+        candidates = gen_candidates(pruned_sets)
         tree = create_hash_tree(candidates)
         count_support(transactions_filename, tree, candidates)
         pruned = prune_candidates(tree, candidates, threshold)
-        all_pruned.extend(pruned)
+        pruned_sets = [p[0] for p in pruned]
+        all_pruned.extend(pruned_sets)
         print "{0} candidates, {1} items for k={2}".format(len(candidates), len(pruned), k)
         if len(pruned) == 0:
             return all_pruned
