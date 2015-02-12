@@ -105,11 +105,16 @@ def append_candidate_to_tree(candidate, tree):
             tree[val] = append_candidate_to_tree(candidate[1:], {})
             return tree
 
-def increment_support_count(transaction, hash_tree, k):
+def increment_support_count(transaction, candidates, hash_tree):
     """ increment the count of each itemset of size k in a given transaction """
-    itemsets = list(itertools.combinations(transaction, k))
-    for itemset in itemsets:
-        __increment_support_count(sorted(list(itemset)), hash_tree)
+    for candidate in candidates:
+        candidate_in_transaction = True
+        for item in candidate:
+            if item not in transaction:
+                candidate_in_transaction = False
+                break
+        if candidate_in_transaction:
+            __increment_support_count(sorted(list(candidate)), hash_tree)
 
 def __increment_support_count(itemset, hash_tree):
     """ traverse the hash tree and actually increment the count for an itemset """
@@ -122,18 +127,17 @@ def __increment_support_count(itemset, hash_tree):
         if item in hash_tree:
             __increment_support_count(itemset[1:], hash_tree[item])
 
-def count_support(filename, hash_tree, k):
+def count_support(filename, hash_tree, candidates):
     """ read transactions from file, increment hash tree leaves if subset of transaction 
     is a candidate """
     transaction = set()
     with open(filename, 'r') as f:
-        for line in f:
-            cur_id =1
+        cur_id =1
         for line in f:
             parts = line.split("::")
-            components = [c for c in parts] 
+            components = [c for c in parts]
             if cur_id != int(components[0]):
-                increment_support_count(transaction, hash_tree, k)
+                increment_support_count(transaction, candidates, hash_tree)
                 transaction = set()  #reset transaction
                 cur_id = int(components[0]) #set cur id
             transaction.add(int(components[1])) #add movie id to the current transaction
@@ -159,29 +163,32 @@ def is_candidate_supported(hash_tree, candidate, threshold):
 def apriori(transactions_filename, threshold, max_k):
 
     # get all item ids, say these are the "candidates" of size 1
+    all_pruned = []
     k = 1
     candidates = set()
     with open(transactions_filename, 'r') as f:
         for line in f:
             parts = line.split("::")
-            for part in parts:
-                candidates.add((int(part),))
+            candidates.add((int(parts[1]),))
+    candidates = [set(c) for c in candidates]
     tree = create_hash_tree(candidates)
-    count_support(transactions_filename, tree, 1)
+    count_support(transactions_filename, tree, candidates)
     pruned = prune_candidates(tree, candidates, threshold)
-    print "{0} items for k={1}".format(len(pruned), k)
+    all_pruned.extend(pruned)
+    print "{0} candidates, {1} items for k={2}".format(len(candidates), len(pruned), k)
     k = 2
     # apriori
     while k <= max_k:
         candidates = gen_candidates(pruned)
         tree = create_hash_tree(candidates)
-        count_support(transactions_filename, tree, k)
+        count_support(transactions_filename, tree, candidates)
         pruned = prune_candidates(tree, candidates, threshold)
-        print "{0} items for k={1}".format(len(pruned), k)
+        all_pruned.extend(pruned)
+        print "{0} candidates, {1} items for k={2}".format(len(candidates), len(pruned), k)
         if len(pruned) == 0:
-            return pruned
+            return all_pruned
         k+=1
-    return pruned
+    return all_pruned
 
 def main():
     parser = argparse.ArgumentParser()
@@ -208,7 +215,7 @@ def main():
     print ("frequent items above threshold {0} found:").format(threshold)
     '''
     k = len(all_items_set)
-    freq_itemsets =apriori(args.dataset_file, args.support_threshold,k)
+    freq_itemsets =apriori(args.dataset_file, args.support_threshold, 4)
     print freq_itemsets
     '''
     i = 0
