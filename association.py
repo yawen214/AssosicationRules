@@ -1,11 +1,11 @@
 """ 
 assoication.py by Yawen Chen & Brian Charous 
 for CS324 Winter 2015
-PART 2 of Association Rule Assignment
+PART 2 of Association Rule Assignment (Part2)
 To run:
 python -s --threshold -f itemsets -d datasets
-for example: python association.py -s 1000 -c -f movies.dat -d ratings.dat
-(finds all freq itemsets in size of 1 with support no less than the threshold 1000 in transactions in ratings.dat )
+for example: python association.py -s 1000 -c 20 -f movies.dat -d ratings.dat
+
 """
 
 import sys
@@ -142,7 +142,6 @@ def count_support(filename, hash_tree, candidates):
                 cur_id = int(components[0]) #set cur id
             transaction.add(int(components[1])) #add movie id to the current transaction
             
-
 def prune_candidates(hash_tree, candidates, threshold):
     """ return a list of itemsets that appeared more than the threshold number of times
     in the dataset """
@@ -154,6 +153,8 @@ def is_candidate_supported(hash_tree, candidate, threshold):
     if len(candidate) == 1:
         if item in hash_tree:
             assert type(hash_tree[item]) is int
+            if hash_tree[item]>threshold:
+                #rule_generation(item,hashtree)
             return hash_tree[item] > threshold
     else:
         if item in hash_tree:
@@ -190,6 +191,11 @@ def apriori(transactions_filename, threshold, max_k):
         k+=1
     return all_pruned
 
+#
+def rule_generation():
+    return 1
+#
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--support_threshold', type= int, required=True, help='Input wanted support threshold')
@@ -198,34 +204,30 @@ def main():
     parser.add_argument('-d', '--dataset_file', required=True, help='The file name of the dataset')
 
     args = parser.parse_args()
-
     # Set up itemsets and datasets 
-    sys.stdout.write("Working on seting up itemsets and datasets... ")
+    sys.stdout.write("Working on seting up itemsets... ")
     sys.stdout.flush()
     threshold = int(args.support_threshold)
+    support_threshold = int(args.support_threshold)
     items_dict, all_items_set = get_items(args.items_file)  # read in all itemsets
+    print "done!"
     print "==========================="
-    '''
-    sys.stdout.write("Now working on finding freq_itemsets above threshold {0} with size of ...".format(threshold))
-    sys.stdout.flush()
+    k = len(all_items_set)
     start = time.time()
-    freq_itemsets = freq_item_generate(threshold, all_items_set, transactions_list)
+    freq_itemsets =apriori(args.dataset_file, support_threshold, k)
     end = time.time()
     sys.stdout.write(" done in {0}s\n\nFound:\n".format(end-start))
-    print ("frequent items above threshold {0} found:").format(threshold)
-    '''
-    k = len(all_items_set)
-    freq_itemsets =apriori(args.dataset_file, args.support_threshold, 4)
-    print freq_itemsets
-    '''
     i = 0
-    for items in freq_itemsets:
+    for set in freq_itemsets:
+        movies = []
         i+= 1
-        movie = items_dict[items]
-        print movie
-    print "Total of {0} movies found in {1} s".format(i, (end-start)/1000)
+        for item in set:
+            movie = items_dict[item]
+            movies.append (movie)
+        print movies
+    print "Total of {0} frequent itemsets over threshold {2} found in {1} s".format(i, (end-start)/1000, threshold)
     print "=========\n"
-    print "end of part I:\n"
-'''
+    print "end of part II:\n"
+
 if __name__ == '__main__':
     main()
