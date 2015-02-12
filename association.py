@@ -133,10 +133,11 @@ def count_support(filename, hash_tree, k):
             parts = line.split("::")
             components = [c for c in parts] 
             if cur_id != int(components[0]):
+                increment_support_count(transaction, hash_tree, k)
                 transaction = set()  #reset transaction
                 cur_id = int(components[0]) #set cur id
             transaction.add(int(components[1])) #add movie id to the current transaction
-            increment_support_count(transaction, hash_tree, k)
+            
 
 def prune_candidates(hash_tree, candidates, threshold):
     """ return a list of itemsets that appeared more than the threshold number of times
@@ -177,6 +178,8 @@ def apriori(transactions_filename, threshold, max_k):
         count_support(transactions_filename, tree, k)
         pruned = prune_candidates(tree, candidates, threshold)
         print "{0} items for k={1}".format(len(pruned), k)
+        if len(pruned) == 0:
+            return pruned
         k+=1
     return pruned
 
