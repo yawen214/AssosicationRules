@@ -3,11 +3,11 @@ assoication.py by Yawen Chen & Brian Charous
 for CS324 Winter 2015
 PART 2 of Association Rule Assignment (Part2)
 To run:
-python -s --threshold -f itemsets -d datasets
-for example: python association.py -s 1000 -c 20 -f movies.dat -d ratings.dat
+arguments: -s support_threhold -c confidence_threshold -f movie_names_data -d dataset
+for example: pypy association.py -f movies.dat -d ratings.dat -s 1500 -c 80
 
 """
-
+from __future__ import division
 import sys
 import argparse
 import time
@@ -153,6 +153,7 @@ def prune_candidates(hash_tree, candidates, threshold):
     return pruned
 
 def is_candidate_supported(hash_tree, candidate, threshold):
+    """ traverse hash tree and return the support threshold for a candidate """
     lc = list(candidate)
     item = lc[0]
     if len(candidate) == 1:
@@ -166,8 +167,8 @@ def is_candidate_supported(hash_tree, candidate, threshold):
             return is_candidate_supported(hash_tree[item], lc[1:], threshold)
     return 0
 
-def apriori(transactions_filename, threshold, max_k):
-
+def apriori(transactions_filename, threshold):
+    """ run apriori algorithm to find frequent itemsets """
     # get all item ids, say these are the "candidates" of size 1
     all_pruned = []
     k = 1
@@ -180,28 +181,51 @@ def apriori(transactions_filename, threshold, max_k):
     tree = create_hash_tree(candidates)
     count_support(transactions_filename, tree, candidates)
     pruned = prune_candidates(tree, candidates, threshold)
-    pruned_sets = [p[0] for p in pruned]
-    all_pruned.extend(pruned_sets)
+    # pruned_sets = [p[0] for p in pruned]
+    all_pruned.extend(pruned)
     print "{0} candidates, {1} items for k={2}".format(len(candidates), len(pruned), k)
     k = 2
     # apriori
-    while k <= max_k:
-        candidates = gen_candidates(pruned_sets)
+    while True:
+        candidates = gen_candidates([p[0] for p in pruned])
         tree = create_hash_tree(candidates)
         count_support(transactions_filename, tree, candidates)
         pruned = prune_candidates(tree, candidates, threshold)
-        pruned_sets = [p[0] for p in pruned]
-        all_pruned.extend(pruned_sets)
+        # pruned_sets = [p[0] for p in pruned]
+        all_pruned.extend(pruned)
         print "{0} candidates, {1} items for k={2}".format(len(candidates), len(pruned), k)
         if len(pruned) == 0:
             return all_pruned
         k+=1
     return all_pruned
 
-#
-def rule_generation():
-    return 1
-#
+def generate_rules(freq_itemsets, confidence_threshold):
+    """ generate rules based on frequent itemsets and a confidence threshold """
+    supports = {}
+    # change (set([A,B,C,...,]), supprt) into dict
+    for s in freq_itemsets:
+        supports[tuple(s[0])] = s[1]
+
+    rules = []
+    for s in freq_itemsets:
+        items = s[0]
+        support = s[1]
+        if len(items) > 1:
+            for combo in itertools.combinations(items, len(items)-1):
+                lhs = set(combo)
+                rhs = lhs ^ items
+                numerator = 0
+                denominator = 0
+                union = tuple(lhs | rhs)
+                if union in supports:
+                    numerator = supports[union]
+                if tuple(lhs) in supports:
+                    denominator = supports[tuple(lhs)]
+                # confidence = support(I U {j})/support(I)
+                if numerator/denominator*100 > confidence_threshold:
+                    rules.append((lhs, list(rhs)[0]))
+    return rules
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -211,30 +235,26 @@ def main():
     parser.add_argument('-d', '--dataset_file', required=True, help='The file name of the dataset')
 
     args = parser.parse_args()
-    # Set up itemsets and datasets 
-    sys.stdout.write("Working on seting up itemsets... ")
-    sys.stdout.flush()
-    threshold = int(args.support_threshold)
     support_threshold = int(args.support_threshold)
-    items_dict, all_items_set = get_items(args.items_file)  # read in all itemsets
-    print "done!"
-    print "==========================="
-    k = len(all_items_set)
-    start = time.time()
-    freq_itemsets =apriori(args.dataset_file, support_threshold, k)
-    end = time.time()
-    sys.stdout.write(" done in {0}s\n\nFound:\n".format(end-start))
-    i = 0
-    for set in freq_itemsets:
-        movies = []
-        i+= 1
-        for item in set:
-            movie = items_dict[item]
-            movies.append (movie)
-        print movies
-    print "Total of {0} frequent itemsets over threshold {2} found in {1} s".format(i, (end-start)/1000, threshold)
-    print "=========\n"
-    print "end of part II:\n"
+    # read in movie names
+    items_dict, all_items_set = get_items(args.items_file) 
+    print "=================================================="
+    print " Finding frequent itemsets with Apriori Algorithm "
+    print "=================================================="
+    freq_itemsets = apriori(args.dataset_file, support_threshold)
+    rules = generate_rules(freq_itemsets, int(args.confidence_threshold))
+    print "=================================================="
+    print " Rules generated with confidence greater than {0} ".format(args.confidence_threshold)
+    print "=================================================="
+    for rule in rules:
+        lhs = rule[0]
+        rhs = rule[1]
+        lhs_movies = '{'
+        for movie in lhs:
+            # get the name of every movie
+            lhs_movies += str(items_dict[movie]) + ', '
+        lhs_movies = lhs_movies[:len(lhs_movies)-2] + "}"
+        print "{0} -> {1}".format(str(lhs_movies), '{' + items_dict[rhs] + '}')
 
 if __name__ == '__main__':
     main()
